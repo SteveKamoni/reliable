@@ -1,0 +1,26 @@
+{
+  "name": "reliable",
+  "version": "1.0.0",
+  "description": "Back-end for reliable",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently \"npm run start --prefix server\" \"npm run dev --prefix client\""
+
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SteveKamoni/reliable.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/SteveKamoni/reliable/issues"
+  },
+  "homepage": "https://github.com/SteveKamoni/reliable#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
