@@ -1,11 +1,12 @@
 import React from 'react'
 import './App.css'
+import ReferralForm from './components/ReferralForm'
 
 function App() {
 
   return (
     <div>
-      FORM REFERRAL
+      <ReferralForm />
     </div>
   )
 }
