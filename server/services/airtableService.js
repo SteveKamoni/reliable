@@ -8,40 +8,41 @@ class AirtableService {
       "Content-Type": "application/json",
     };
 
-    // Map frontend keys to Airtable field names
+    // Using Airtable field IDs instead of names
     this.fieldMap = {
       FirstName: "First Name",
       LastName: "Last Name",
       Phone: "Phone",
       Email: "Email",
       Message: "Message",
-      Attachments: "Attachments",
+      SubmissionDate: "Submission Date",
     };
   }
 
-  /**
-   * Create a new record in Airtable
-   * @param {Object} data - Form data
-   * @param {Object|null} attachment - Optional attachment in Airtable format
-   * @returns {Object} Airtable response data
-   */
-  async createRecord(data, attachment = null) {
+  async createRecord(data) {
     try {
       const fields = {};
 
-      // Map frontend data to Airtable fields
+      // Map data keys to Airtable field IDs
       Object.keys(data).forEach((key) => {
         if (data[key] !== undefined && this.fieldMap[key]) {
           fields[this.fieldMap[key]] = data[key];
         }
       });
 
-      fields[this.fieldMap.SubmissionDate] = new Date().toISOString();
-
-      // Add attachment if provided
-      if (attachment) {
-        fields[this.fieldMap.Attachments] = [attachment];
+      // Add submission date if not present
+      if (!fields[this.fieldMap.SubmissionDate]) {
+        const today = new Date();
+        fields[this.fieldMap.SubmissionDate] = today
+          .toISOString()
+          .split("T")[0];
       }
+
+      console.log(
+        "Posting to:",
+        `${this.baseURL}/${process.env.AIRTABLE_TABLE_ID}`
+      );
+      console.log("Mapped fields:", fields);
 
       const response = await axios.post(
         `${this.baseURL}/${process.env.AIRTABLE_TABLE_ID}`,
@@ -51,10 +52,10 @@ class AirtableService {
 
       return response.data;
     } catch (error) {
-      console.error(
-        "Airtable API Error:",
-        error.response?.data || error.message
-      );
+      console.error("Airtable API Error:", error.message);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+      }
       throw new Error(
         `Failed to create record: ${
           error.response?.data?.error?.message || error.message
@@ -63,11 +64,6 @@ class AirtableService {
     }
   }
 
-  /**
-   * Check if a record with the given email already exists
-   * @param {string} email
-   * @returns {boolean}
-   */
   async checkDuplicate(email) {
     try {
       const response = await axios.get(
@@ -75,7 +71,7 @@ class AirtableService {
         {
           headers: this.headers,
           params: {
-            filterByFormula: `{Email} = "${email}"`,
+            filterByFormula: `{${this.fieldMap.Email}} = "${email}"`,
             maxRecords: 1,
           },
         }
@@ -83,25 +79,7 @@ class AirtableService {
       return response.data.records.length > 0;
     } catch (error) {
       console.error("Duplicate check error:", error.message);
-      return false; // Allow submission if check fails
-    }
-  }
-
-  /**
-   * Process an uploaded file for Airtable
-   * @param {Object} file - Multer file object
-   * @returns {Object} Airtable-compatible attachment
-   */
-  async processAttachment(file) {
-    try {
-      // Airtable supports URLs; base64 works for small files
-      return {
-        filename: file.originalname,
-        url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
-      };
-    } catch (error) {
-      console.error("Attachment processing error:", error.message);
-      throw new Error("Failed to process attachment");
+      return false;
     }
   }
 }

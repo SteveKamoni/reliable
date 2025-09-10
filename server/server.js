@@ -18,10 +18,10 @@ app.use(
   })
 );
 
-// Rate limiting
+// Rate limiting — increased to avoid accidental blocks during development / real usage
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs
+  max: 100, // increased from 10 to 100
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
@@ -54,5 +54,5 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Hello! Server running on port ${PORT}`);
 });

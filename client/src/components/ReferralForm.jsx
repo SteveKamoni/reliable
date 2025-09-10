@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast, { Toaster } from "react-hot-toast";
@@ -9,6 +9,7 @@ import styles from "../styles/ReferralForm.module.scss";
 const ReferralForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const {
     register,
@@ -24,7 +25,11 @@ const ReferralForm = () => {
     try {
       const formData = new FormData();
       Object.keys(data).forEach((key) => {
-        if (data[key]) formData.append(key, data[key]);
+        // Only append non-empty values
+        const value = data[key];
+        if (value !== undefined && value !== null && value !== "") {
+          formData.append(key, value);
+        }
       });
       if (selectedFile) formData.append("attachment", selectedFile);
 
@@ -33,8 +38,10 @@ const ReferralForm = () => {
       toast.success("Referral submitted successfully!");
       reset();
       setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
-      toast.error(error.message);
+      // error.message is set by api interceptor
+      toast.error(error.message || "Submission failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -45,9 +52,12 @@ const ReferralForm = () => {
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         toast.error("File size must be less than 5MB");
+        e.target.value = ""; // clear invalid file
         return;
       }
       setSelectedFile(file);
+    } else {
+      setSelectedFile(null);
     }
   };
 
@@ -119,7 +129,12 @@ const ReferralForm = () => {
         {/* File Upload */}
         <div className={styles.group}>
           <label>Attachment</label>
-          <input type="file" onChange={handleFileChange} accept=".jpg,.jpeg,.png,.pdf,.txt" />
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileChange}
+            accept=".jpg,.jpeg,.png,.pdf,.txt"
+          />
           {selectedFile && <p className={styles.fileSelected}>Selected: {selectedFile.name}</p>}
           <p className={styles.fileInfo}>Accepted: JPG, PNG, PDF, TXT (max 5MB)</p>
         </div>

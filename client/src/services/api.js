@@ -13,23 +13,23 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor — make Joi/server validation errors readable
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const serverData = error.response?.data;
     const message =
-      error.response?.data?.message || error.message || "An error occurred";
+      (Array.isArray(serverData?.errors) && serverData.errors.join(", ")) ||
+      serverData?.message ||
+      error.message ||
+      "An error occurred";
     return Promise.reject(new Error(message));
   }
 );
 
 export const referralAPI = {
-  submit: (data) =>
-    api.post("/referrals/submit", data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }),
+  // Do NOT set Content-Type here; axios will set boundary when FormData is passed
+  submit: (data) => api.post("/referrals/submit", data),
   test: () => api.get("/referrals/test"),
 };
 

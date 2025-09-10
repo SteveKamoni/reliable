@@ -5,7 +5,7 @@ const airtableService = require("../services/airtableService");
 
 const router = express.Router();
 
-// Multer configuration for in-memory uploads (5MB max)
+// Multer config
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -29,10 +29,12 @@ const upload = multer({
 // POST /submit
 router.post("/submit", upload.single("attachment"), async (req, res) => {
   try {
-    // Joi validation
+    console.log("Incoming body:", req.body);
+
+    // Validate input
     const { error, value: formData } = referralSchema.validate(req.body, {
-      abortEarly: false, // collect all errors
-      stripUnknown: true, // remove unknown fields
+      abortEarly: false,
+      stripUnknown: true,
     });
 
     if (error) {
@@ -42,7 +44,7 @@ router.post("/submit", upload.single("attachment"), async (req, res) => {
         .json({ success: false, message: "Validation error", errors });
     }
 
-    // Check for duplicates by email
+    // Check for duplicates
     const isDuplicate = await airtableService.checkDuplicate(formData.Email);
     if (isDuplicate) {
       return res.status(409).json({
@@ -51,21 +53,13 @@ router.post("/submit", upload.single("attachment"), async (req, res) => {
       });
     }
 
-    // Handle attachment if present
+    // Handle attachment
     if (req.file) {
-      try {
-        const attachment = await airtableService.uploadAttachment(req.file);
-        formData.Attachments = [attachment];
-      } catch (fileError) {
-        return res.status(400).json({
-          success: false,
-          message: "File upload failed",
-          error: fileError.message,
-        });
-      }
+      const attachment = await airtableService.processAttachment(req.file);
+      formData.Attachments = [attachment];
     }
 
-    // Create record in Airtable
+    // Create record
     const result = await airtableService.createRecord(formData);
 
     return res.status(201).json({
@@ -85,10 +79,10 @@ router.post("/submit", upload.single("attachment"), async (req, res) => {
   }
 });
 
-// GET /test (Airtable connectivity)
+// GET /test
 router.get("/test", async (req, res) => {
   try {
-    const response = await airtableService.checkDuplicate(""); // lightweight test
+    const response = await airtableService.checkDuplicate(""); // simple test
     res.json({ success: true, message: "Airtable connection successful" });
   } catch (error) {
     console.error("Airtable test error:", error);
